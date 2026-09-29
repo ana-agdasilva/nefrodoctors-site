@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Interativo do Ecossistema Digital da NefroDoctors</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS Client via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between text-slate-800">
+
+    <!-- HEADER EM ROXO PROFUNDO COM BOTÕES COLORIDOS -->
+    <header class="bg-gradient-to-r from-purple-950 via-purple-900 to-indigo-950 text-white sticky top-0 z-40 shadow-lg border-b border-purple-800/50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="h-20 bg-white px-4 py-2 rounded-2xl flex items-center shadow-inner">
+                    <img src="logo-nefro.png" alt="NefroDoctors" class="h-full w-auto object-contain max-w-[240px]" onerror="this.parentElement.innerHTML='<span class=\'font-bold text-base text-purple-900\'>NefroDoctors</span>'">
+                </div>
+                <div class="border-l border-purple-800 pl-4">
+                    <h1 class="text-base font-bold text-white tracking-wide">Ecossistema Digital</h1>
+                    <p class="text-xs text-purple-200">Arquitetura de Informação & Proposta de Reformulação</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-3">
+                <button onclick="requestAgencyAccess()" class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-amber-950 font-bold text-xs uppercase tracking-wider rounded-xl transition shadow-md flex items-center gap-1.5">
+                    ⚙️ Painel da Agência
+                </button>
+                <button onclick="toggleAllCards()" class="px-4 py-2.5 bg-purple-400 text-purple-950 hover:bg-purple-300 font-bold text-xs uppercase tracking-wider rounded-xl transition shadow-md flex items-center gap-1.5">
+                    🔄 Virar Todos
+                </button>
+                <button onclick="toggleNotesDrawer()" class="relative px-4 py-2.5 bg-cyan-400 text-cyan-950 hover:bg-cyan-300 font-bold text-xs uppercase tracking-wider rounded-xl transition shadow-md flex items-center gap-1.5">
+                    📝 Resumo & Envios <span id="notesBadge" class="absolute -top-2 -right-2 bg-amber-400 text-amber-950 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold shadow hidden">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
+        <div class="text-center max-w-2xl mx-auto mb-10">
+            <h2 class="text-2xl font-bold text-slate-900">Mapa Interativo do Ecossistema Digital da NefroDoctors</h2>
+            <p class="text-slate-600 mt-2 text-sm">Explore a estrutura atual do site, envie textos/imagens específicos por aba ou vire os cartões para conferir a proposta de modernização da Marketarte.</p>
+        </div>
+
+        <div id="cardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Gerado via JS -->
+        </div>
+    </main>
+
+    <!-- MODAL DE DETALHES DA PÁGINA (EXPLORAR) -->
+    <div id="detailModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-start bg-purple-50">
+                <div>
+                    <span id="modalCategory" class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 bg-purple-200 text-purple-900 rounded-lg">Estrutura Atual</span>
+                    <h3 id="modalTitle" class="text-xl font-bold text-slate-900 mt-2">Título da Página</h3>
+                    <p id="modalSubtitle" class="text-xs text-slate-600 mt-1">Visão detalhada das seções e conteúdos.</p>
+                </div>
+                <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold p-1">&times;</button>
+            </div>
+            <div id="modalBody" class="p-6 overflow-y-auto space-y-4 flex-grow">
+                <!-- Seções detalhadas -->
+            </div>
+            <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
+                <button onclick="openNotePromptFromModal()" class="px-4 py-2 bg-purple-100 text-purple-800 hover:bg-purple-200 font-medium text-xs rounded-xl transition border border-purple-200 flex items-center gap-1">
+                    ✏️ Solicitar Alteração Nesta Seção
+                </button>
+                <button onclick="closeDetailModal()" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm rounded-xl transition">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL RESTRITO: PAINEL DA AGÊNCIA (EDITAR PROPOSTAS) -->
+    <div id="agencyModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border-4 border-purple-600">
+            <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-purple-950 text-white">
+                <div>
+                    <h3 class="font-bold text-lg">🔒 Painel Restrito da Agência (Marketarte)</h3>
+                    <p class="text-xs text-purple-300">Modifique os textos dos versos dos cartões em tempo real.</p>
+                </div>
+                <button onclick="toggleAgencyModal()" class="text-purple-300 hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+            <div id="agencyEditorList" class="p-6 overflow-y-auto space-y-6 flex-grow">
+                <!-- Campos gerados via JS -->
+            </div>
+            <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
+                <button onclick="resetProposals()" class="px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 rounded-xl transition font-medium">Restaurar Padrão</button>
+                <button onclick="toggleAgencyModal()" class="px-6 py-2.5 bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold text-sm uppercase tracking-wider rounded-xl transition shadow">Salvar e Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DRAWER DE RESUMO GERAL E EXPORTAÇÃO -->
+    <div id="notesDrawer" class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl transform translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+            <h3 class="font-bold text-lg text-slate-900">Resumo de Anotações e Arquivos</h3>
+            <button onclick="toggleNotesDrawer()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+        </div>
+        <div id="notesList" class="p-5 flex-grow overflow-y-auto space-y-4">
+            <p class="text-slate-500 text-sm text-center py-8">Nenhuma anotação ou arquivo enviado ainda.</p>
+        </div>
+        <div class="p-4 border-t border-slate-200 bg-slate-50">
+            <button onclick="exportNotes()" class="w-full py-3 bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold text-xs uppercase tracking-wider rounded-xl transition shadow">
+                Exportar Relatório Geral Completo
+            </button>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left">
+            <p class="text-xs text-slate-500">© 2026 NefroDoctors. Todos os direitos reservados.</p>
+            <div class="flex items-center gap-2 text-xs text-slate-600">
+                <span>Desenvolvido por</span>
+                <div class="h-6 flex items-center">
+                    <img src="logo-marketarte.png" alt="Marketarte" class="h-full w-auto object-contain" onerror="this.parentElement.innerHTML='<span class=\'font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200\'>marketarte</span>'">
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // CONFIGURAÇÃO DO SUPABASE INTEGRADA COM SEU PROJETO ATUAL
+        const SUPABASE_URL = 'https://vzzgtzkpoklbimfnsxui.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'sb_publishable_duh-_zTiqexjGTkpyO-QXg_0a6n-1U9';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const defaultSitemapData = [
+            {
+                id: 1,
+                title: "1. Home (Início)",
+                summary: "Seção de Apresentação / Banner Principal: Boas-vindas, identificação visual e slogan 'Nefrologia Intervencionista'.",
+                proposal: "Redesign moderno com banner em vídeo imersivo, tipografia limpa, paleta em tons pastel roxo/lilás relaxantes, cartões de acesso rápido otimizados para conversão e rodapé institucional completo.",
+                sections: [
+                    { title: "Banner Principal & Boas-Vindas", desc: "Identificação visual de alto impacto, slogan da clínica e acesso rápido à marcação de consultas." },
+                    { title: "Atalhos Rápidos", desc: "Acesso direto aos tratamentos mais buscados, convênios atendidos e canal direto com o paciente." },
+                    { title: "Rodapé & Contato Inicial", desc: "Informações de localização, horários de atendimento e links para redes sociais." }
+                ]
+            },
+            {
+                id: 2,
+                title: "2. A Nefro Doctors",
+                summary: "Nossa História (contexto de fundação, missão institucional e valores) e Nossa Equipe médica.",
+                proposal: "Página institucional humanizada com galeria profissional da equipe, modais interativos para currículos médicos e linha do tempo interativa da história da clínica.",
+                sections: [
+                    { title: "Nossa História", desc: "Contexto de fundação, missão institucional, visão e valores éticos da clínica." },
+                    { title: "Nossa Equipe Médica", desc: "Apresentação dos nefrologistas e corpo clínico especializado, com CRM e especialidades." }
+                ]
+            },
+            {
+                id: 3,
+                title: "3. Serviços",
+                summary: "Terapia Renal Substitutiva (hemodiálise, hemofiltração) e Consultas Ambulatoriais.",
+                proposal: "Layout em abas interativas categorizando claramente os tratamentos de alta complexidade e especialidades, facilitando a leitura mobile dos pacientes.",
+                sections: [
+                    { title: "Terapia Renal Substitutiva", desc: "Hemodiálise avançada, hemofiltração e suporte clínico integral." },
+                    { title: "Consultas Ambulatoriais", desc: "Atendimento especializado em Nefrologia, Cardiologia, Nutrição e suporte multidisciplinar." }
+                ]
+            },
+            {
+                id: 4,
+                title: "4. Tratamentos",
+                summary: "Tratamento Substitutivo Renal (hemodiálise, diálise peritoneal, transplante) e Prevenção.",
+                proposal: "Infográficos explicativos modernos em tons pastel lilás, linguagem acessível para pacientes e diretrizes técnicas aprofundadas para profissionais.",
+                sections: [
+                    { title: "Tratamento Substitutivo Renal", desc: "Explicação técnica aprofundada sobre hemodiálise, diálise peritoneal e transplante renal." },
+                    { title: "Prevenção e Cuidados", desc: "Conteúdos educativos direcionados à prevenção precoce de doenças renais crônicas e agudas." }
+                ]
+            },
+            {
+                id: 5,
+                title: "5. Convênios",
+                summary: "Atendimento por Convênios e Consultas Particulares, com menção a parceiros.",
+                proposal: "Busca interativa de planos de saúde atendidos, tabela dinâmica de parceiros e orientações claras de reembolso e pré-agendamento.",
+                sections: [
+                    { title: "Planos de Saúde Credenciados", desc: "Listagem completa de convênios médicos aceitos na clínica." },
+                    { title: "Parceiros Institucionais", desc: "Destaque para parcerias de referência como o Hospital Santa Marcelina - Itaquera." }
+                ]
+            },
+            {
+                id: 6,
+                title: "6. Ao Paciente",
+                summary: "Espaço Educativo com conteúdos informativos divididos por categorias sobre saúde renal.",
+                proposal: "Blog institucional reformulado com artigos curtos, vídeos educativos em destaque e e-books informativos para download gratuito.",
+                sections: [
+                    { title: "Espaço Educativo", desc: "Artigos e orientações práticas sobre funcionamento dos rins, exames e qualidade de vida." },
+                    { title: "Central de Orientações", desc: "Material informativo de apoio para pacientes em tratamento e familiares." }
+                ]
+            },
+            {
+                id: 7,
+                title: "7. Educação Continuada",
+                summary: "Área Acadêmica / Profissional com artigos científicos, aulas e conteúdos para médicos.",
+                proposal: "Portal acadêmico exclusivo com sistema de login seguro, player de vídeo para aulas e repositório organizado de publicações científicas.",
+                sections: [
+                    { title: "Repositório Científico", desc: "Artigos, publicações e pesquisas desenvolvidas pelo corpo clínico." },
+                    { title: "Aulas e Capacitações", desc: "Conteúdos voltados para estudantes, residentes e médicos em nefrologia." }
+                ]
+            },
+            {
+                id: 8,
+                title: "8. Trabalhe Conosco",
+                summary: "Canal de Oportunidades com formulário e espaço dedicado para envio de currículos.",
+                proposal: "Formulário inteligente com anexo de currículo simplificado, listagem dinâmica de vagas abertas e integração direta com o RH.",
+                sections: [
+                    { title: "Banco de Talentos", desc: "Canal aberto para envio de currículos de profissionais da saúde e administrativos." },
+                    { title: "Vagas Disponíveis", desc: "Painel atualizado com oportunidades de carreira na instituição." }
+                ]
+            },
+            {
+                id: 9,
+                title: "9. Contato",
+                summary: "Localização, Mapa Interativo (Hospital Santa Marcelina - Itaquera) e Fale Conosco.",
+                proposal: "Mapa embutido estilizado, botões de acesso rápido para WhatsApp e Waze/Google Maps, além de formulário de contato com resposta instantânea.",
+                sections: [
+                    { title: "Localização e Mapa", desc: "Endereço detalhado e rotas de fácil acesso para a unidade." },
+                    { title: "Canais de Atendimento", desc: "Telefones, e-mails institucionais e formulário de contato rápido." }
+                ]
+            },
+            {
+                id: 10,
+                title: "10. Área de Membros",
+                summary: "Login / Cadastro de Usuários (acesso restrito) e Biblioteca de Arquivos e PDFs.",
+                proposal: "Painel de membros moderno com controle de permissões por perfil, downloads seguros de PDFs e interface fluida e intuitiva.",
+                sections: [
+                    { title: "Acesso Restrito", desc: "Área de login segura para pacientes cadastrados e médicos parceiros." },
+                    { title: "Biblioteca de Documentos", desc: "Repositório para leitura e download de exames, guias e relatórios em PDF." }
+                ]
+            }
+        ];
+
+        let sitemapData = JSON.parse(localStorage.getItem('marketarte_proposals')) || defaultSitemapData;
+        let userNotes = {};
+        let cardFiles = {};
+
+        async function carregarDadosDoSupabase() {
+            try {
+                const { data, error } = await _supabase.from('NefroDoctors Site').select('*');
+                if (data && !error) {
+                    userNotes = {};
+                    cardFiles = {};
+                    data.forEach(item => {
+                        if (item.tipo === 'texto') {
+                            userNotes[item.card_id] = item.conteudo;
+                        } else if (item.tipo === 'arquivo') {
+                            if (!cardFiles[item.card_id]) cardFiles[item.card_id] = [];
+                            cardFiles[item.card_id].push(item.conteudo);
+                        }
+                    });
+                    renderCards();
+                }
+            } catch (err) {
+                console.error("Erro ao sincronizar com Supabase:", err);
+            }
+        }
+
+        function renderCards() {
+            const grid = document.getElementById('cardsGrid');
+            grid.innerHTML = sitemapData.map(card => {
+                const filesList = cardFiles[card.id] || [];
+                const filesCount = filesList.length;
+                return `
+                <div class="perspective-1000 h-[460px]">
+                    <div id="card-${card.id}" class="relative w-full h-full duration-700 transform-style-3d shadow-md hover:shadow-xl rounded-2xl">
+                        
+                        <!-- FRENTE (Estrutura Atual) -->
+                        <div class="absolute inset-0 w-full h-full bg-white border border-sky-200 bg-sky-50/40 rounded-2xl p-5 flex flex-col justify-between backface-hidden">
+                            <div>
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 bg-sky-100 text-sky-800 rounded-lg">Estrutura Atual</span>
+                                    <div class="flex gap-1.5">
+                                        <button onclick="openDetailModal(${card.id})" class="p-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl shadow transition text-xs font-semibold flex items-center gap-1">
+                                            🔍 Explorar
+                                        </button>
+                                        <button onclick="flipCard(${card.id})" class="p-2 bg-white hover:bg-slate-100 rounded-xl shadow border border-slate-200 text-slate-700 transition text-xs font-semibold">
+                                            Virar 🔄
+                                        </button>
+                                    </div>
+                                </div>
+                                <h3 class="text-base font-bold text-slate-900 mb-1">${card.title}</h3>
+                                <p class="text-slate-600 text-xs leading-relaxed">${card.summary}</p>
+                            </div>
+                            
+                            <div class="space-y-2 pt-2 border-t border-slate-100">
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-500 mb-1">Anotações / Ajustes:</label>
+                                    <input type="text" id="note-input-${card.id}" value="${userNotes[card.id] || ''}" onchange="salvarNotaSupabase(${card.id}, this.value)" placeholder="Escreva o que mudar..." class="w-full text-xs px-3 py-1.5 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-500 bg-white">
+                                </div>
+                                
+                                <div class="flex items-center justify-between gap-2 pt-1">
+                                    <label class="cursor-pointer px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-900 font-semibold text-xs rounded-xl transition border border-purple-200 flex items-center gap-1.5 w-full justify-center">
+                                        📁 Enviar Texto/Imagem <input type="file" onchange="enviarArquivoSupabase(${card.id}, event)" class="hidden">
+                                    </label>
+                                    ${filesCount > 0 ? `<span class="bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap">${filesCount} anexo(s)</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- VERSO (Proposta Marketarte) -->
+                        <div class="absolute inset-0 w-full h-full bg-purple-50/95 border border-purple-200 rounded-2xl p-5 flex flex-col justify-between backface-hidden rotate-y-180">
+                            <div>
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 bg-purple-200 text-purple-900 rounded-lg">Proposta Marketarte</span>
+                                    <button onclick="flipCard(${card.id})" class="p-2 bg-white hover:bg-purple-100 rounded-xl shadow border border-purple-200 text-purple-800 transition text-xs font-semibold">
+                                        Voltar ↩
+                                    </button>
+                                </div>
+                                <h3 class="text-base font-bold text-purple-950 mb-1">${card.title} (Reformulado)</h3>
+                                <p class="text-purple-900 text-xs leading-relaxed">${card.proposal}</p>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-purple-200/60 flex justify-between items-center">
+                                <span class="text-[11px] text-purple-700 font-medium">✨ Design exclusivo Marketarte</span>
+                                <button onclick="openDetailModal(${card.id})" class="text-xs px-3 py-1.5 bg-purple-200 hover:bg-purple-300 text-purple-900 rounded-lg font-semibold transition">
+                                    Ver Detalhes 🔍
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            `;
+            }).join('');
+            updateBadge();
+        }
+
+        async function salvarNotaSupabase(cardId, valor) {
+            userNotes[cardId] = valor;
+            await _supabase.from('NefroDoctors Site').insert([{ card_id: cardId, tipo: 'texto', conteudo: valor }]);
+            updateBadge();
+        }
+
+        async function enviarArquivoSupabase(cardId, event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileName = `${Date.now()}_${file.name}`;
+            const { data: uploadData, error: uploadError } = await _supabase.storage
+                .from('NefroDoctors Site')
+                .upload(fileName, file);
+
+            if (uploadError) {
+                alert('Erro ao enviar arquivo para o Supabase.');
+                return;
+            }
+
+            const { data: publicUrlData } = _supabase.storage
+                .from('NefroDoctors Site')
+                .getPublicUrl(fileName);
+
+            const fileUrl = publicUrlData.publicUrl;
+            await _supabase.from('NefroDoctors Site').insert([{ card_id: cardId, tipo: 'arquivo', conteudo: fileUrl }]);
+
+            if (!cardFiles[cardId]) cardFiles[cardId] = [];
+            cardFiles[cardId].push(fileUrl);
+
+            renderCards();
+            alert(`Arquivo "${file.name}" enviado com sucesso para a agência!`);
+        }
+
+        function openDetailModal(id) {
+            const card = sitemapData.find(c => c.id === id);
+            if(!card) return;
+
+            document.getElementById('modalTitle').innerText = card.title;
+            document.getElementById('modalBody').innerHTML = card.sections.map(sec => `
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <h4 class="font-bold text-sm text-slate-900 flex items-center gap-2 mb-1">
+                        <span class="w-2 h-2 rounded-full bg-purple-600"></span> ${sec.title}
+                    </h4>
+                    <p class="text-xs text-slate-600 leading-relaxed pl-4">${sec.desc}</p>
+                </div>
+            `).join('');
+
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        function openNotePromptFromModal() {
+            closeDetailModal();
+        }
+
+        function requestAgencyAccess() {
+            const senha = prompt("Digite a senha de acesso à Área da Agência:");
+            if (senha === "Marketarte") {
+                toggleAgencyModal();
+            } else if (senha !== null) {
+                alert("Senha incorreta!");
+            }
+        }
+
+        function renderAgencyEditor() {
+            const container = document.getElementById('agencyEditorList');
+            container.innerHTML = sitemapData.map(card => `
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <label class="block font-bold text-sm text-slate-900 mb-1">${card.title}</label>
+                    <textarea rows="3" onchange="updateProposalText(${card.id}, this.value)" class="w-full p-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-purple-500">${card.proposal}</textarea>
+                </div>
+            `).join('');
+        }
+
+        function updateProposalText(id, val) {
+            const card = sitemapData.find(c => c.id === id);
+            if(card) {
+                card.proposal = val;
+                localStorage.setItem('marketarte_proposals', JSON.stringify(sitemapData));
+                renderCards();
+            }
+        }
+
+        function resetProposals() {
+            if(confirm('Deseja restaurar todos os textos para o padrão original?')) {
+                localStorage.removeItem('marketarte_proposals');
+                sitemapData = JSON.parse(JSON.stringify(defaultSitemapData));
+                renderCards();
+                renderAgencyEditor();
+            }
+        }
+
+        function toggleAgencyModal() {
+            const modal = document.getElementById('agencyModal');
+            modal.classList.toggle('hidden');
+            if(!modal.classList.contains('hidden')) {
+                renderAgencyEditor();
+            }
+        }
+
+        function flipCard(id) {
+            document.getElementById(`card-${id}`).classList.toggle('rotate-y-180');
+        }
+
+        function toggleAllCards() {
+            document.querySelectorAll('[id^="card-"]').forEach(card => card.classList.toggle('rotate-y-180'));
+        }
+
+        function updateBadge() {
+            const badge = document.getElementById('notesBadge');
+            const total = Object.keys(userNotes).length + Object.values(cardFiles).reduce((acc, arr) => acc + arr.length, 0);
+            if(total > 0) {
+                badge.innerText = total;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function updateNotesList() {
+            const list = document.getElementById('notesList');
+            let html = '';
+            sitemapData.forEach(card => {
+                const note = userNotes[card.id];
+                const files = cardFiles[card.id];
+                if(note || (files && files.length > 0)) {
+                    html += `
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                            <h4 class="font-bold text-xs text-purple-950 uppercase tracking-wide">${card.title}</h4>
+                            ${note ? `<p class="text-xs text-slate-700"><strong>Nota:</strong> ${note}</p>` : ''}
+                            ${files && files.length > 0 ? `<p class="text-xs text-purple-800"><strong>Arquivos:</strong> ${files.map(f => `<a href="${f}" target="_blank" class="underline text-blue-600">Ver Link</a>`).join(', ')}</p>` : ''}
+                        </div>
+                    `;
+                }
+            });
+            list.innerHTML = html || `<p class="text-slate-500 text-sm text-center py-8">Nenhuma anotação ou arquivo enviado ainda.</p>`;
+        }
+
+        function toggleNotesDrawer() {
+            updateNotesList();
+            document.getElementById('notesDrawer').classList.toggle('translate-x-full');
+        }
+
+        function exportNotes() {
+            let report = "RELATÓRIO DE AJUSTES E MATERIAIS - NEFRODOCTORS\n\n";
+            sitemapData.forEach(card => {
+                const note = userNotes[card.id];
+                const files = cardFiles[card.id];
+                if(note || (files && files.length > 0)) {
+                    report += `[ ${card.title} ]\n`;
+                    if(note) report += `Anotação: ${note}\n`;
+                    if(files && files.length > 0) report += `Links dos Arquivos: ${files.join(', ')}\n\n`;
+                }
+            });
+
+            const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Relatorio_Ajustes_NefroDoctors.txt';
+            a.click();
+        }
+
+        window.onload = carregarDadosDoSupabase;
+    </script>
+</body>
+</html>
