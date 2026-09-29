@@ -337,7 +337,7 @@
 
         async function salvarNotaSupabase(cardId, valor) {
             userNotes[cardId] = valor;
-            await _supabase.from('NefroDoctors Site').insert([{ card_id: cardId, tipo: 'texto', conteudo: valor }]);
+            await _supabase.from('nefrodoctors-site').insert([{ card_id: cardId, tipo: 'texto', conteudo: valor }]);
             updateBadge();
         }
 
@@ -347,7 +347,7 @@
 
             const fileName = `${Date.now()}_${file.name}`;
             const { data: uploadData, error: uploadError } = await _supabase.storage
-                .from('NefroDoctors Site')
+                .from('nefrodoctors-site')
                 .upload(fileName, file);
 
             if (uploadError) {
@@ -356,11 +356,11 @@
             }
 
             const { data: publicUrlData } = _supabase.storage
-                .from('NefroDoctors Site')
+                .from('nefrodoctors-site')
                 .getPublicUrl(fileName);
 
             const fileUrl = publicUrlData.publicUrl;
-            await _supabase.from('NefroDoctors Site').insert([{ card_id: cardId, tipo: 'arquivo', conteudo: fileUrl }]);
+            await _supabase.from('nefrodoctors-site').insert([{ card_id: cardId, tipo: 'arquivo', conteudo: fileUrl }]);
 
             if (!cardFiles[cardId]) cardFiles[cardId] = [];
             cardFiles[cardId].push(fileUrl);
