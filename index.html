@@ -342,10 +342,9 @@
         }
 
         async function enviarArquivoSupabase(cardId, event) {
-            const file = event.target.files[0];
-            if (!file) return;
+    const file = event.target.files[0];
+    if (!file) return;
 
-           // Cria uma pasta com o ID do card e guarda lá dentro com nome único
     const fileName = `${cardId}/${Date.now()}_${file.name}`;
     const { data: uploadData, error: uploadError } = await _supabase.storage
         .from('nefrodoctors-site')
@@ -360,16 +359,20 @@
         .from('nefrodoctors-site')
         .getPublicUrl(fileName);
 
-            const fileUrl = publicUrlData.publicUrl;
-            await _supabase.from('nefrodoctors-site').insert([{ card_id: cardId, tipo: 'arquivo', conteudo: fileUrl }]);
+    const fileUrl = publicUrlData.publicUrl;
 
-            if (!cardFiles[cardId]) cardFiles[cardId] = [];
-            cardFiles[cardId].push(fileUrl);
+    await _supabase.from('nefrodoctors-site').insert([{ 
+        card_id: cardId, 
+        tipo: 'arquivo', 
+        conteudo: fileUrl 
+    }]);
 
-            renderCards();
-            alert(`Arquivo "${file.name}" enviado com sucesso para a agência!`);
-        }
+    if (!cardFiles[cardId]) cardFiles[cardId] = [];
+    cardFiles[cardId].push(fileUrl);
 
+    renderCards();
+    alert(`Arquivo "${file.name}" enviado com sucesso para a agência!`);
+}
         function openDetailModal(id) {
             const card = sitemapData.find(c => c.id === id);
             if(!card) return;
