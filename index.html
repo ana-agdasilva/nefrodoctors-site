@@ -340,8 +340,7 @@
             await _supabase.from('nefrodoctors-site').insert([{ card_id: cardId, tipo: 'texto', conteudo: valor }]);
             updateBadge();
         }
-
-        async function enviarArquivoSupabase(cardId, event) {
+async function enviarArquivoSupabase(cardId, event) {
     const file = event.target.files[0];
     if (!file) return;
 
@@ -370,6 +369,9 @@
     if (!cardFiles[cardId]) cardFiles[cardId] = [];
     cardFiles[cardId].push(fileUrl);
 
+    renderCards();
+    alert(`Arquivo "${file.name}" enviado com sucesso para a agência!`);
+}
     renderCards();
     alert(`Arquivo "${file.name}" enviado com sucesso para a agência!`);
 }
