@@ -340,11 +340,13 @@
             await _supabase.from('nefrodoctors-site').insert([{ card_id: cardId, tipo: 'texto', conteudo: valor }]);
             updateBadge();
         }
-async function enviarArquivoSupabase(cardId, event) {
+
+        async function enviarArquivoSupabase(cardId, event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const fileName = `${cardId}/${Date.now()}_${file.name}`;
+    // Organiza por prefixo no nome, evitando restrições de subpastas do Supabase
+    const fileName = `card-${cardId}_${Date.now()}_${file.name}`;
     const { data: uploadData, error: uploadError } = await _supabase.storage
         .from('nefrodoctors-site')
         .upload(fileName, file);
