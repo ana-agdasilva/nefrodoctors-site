@@ -341,14 +341,20 @@
             updateBadge();
         }
 
-        async function enviarArquivoSupabase(cardId, event) {
+       async function enviarArquivoSupabase(cardId, event) {
     const file = event.target.files[0];
     if (!file) {
         alert('Nenhum arquivo selecionado.');
         return;
     }
 
-    const fileName = `card-${cardId}_${Date.now()}_${file.name}`;
+    // Remove acentos, espaços e caracteres especiais do nome do ficheiro
+    const cleanName = file.name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9.-]/g, '_');
+
+    const fileName = `card-${cardId}_${Date.now()}_${cleanName}`;
     
     const { data: uploadData, error: uploadError } = await _supabase.storage
         .from('nefrodoctors-site')
