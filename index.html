@@ -345,19 +345,20 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            const fileName = `${Date.now()}_${file.name}`;
-            const { data: uploadData, error: uploadError } = await _supabase.storage
-                .from('nefrodoctors-site')
-                .upload(fileName, file);
+           // Cria uma pasta com o ID do card e guarda lá dentro com nome único
+    const fileName = `${cardId}/${Date.now()}_${file.name}`;
+    const { data: uploadData, error: uploadError } = await _supabase.storage
+        .from('nefrodoctors-site')
+        .upload(fileName, file);
 
-            if (uploadError) {
-                alert('Erro ao enviar arquivo para o Supabase.');
-                return;
-            }
+    if (uploadError) {
+        alert('Erro ao enviar arquivo para o Supabase.');
+        return;
+    }
 
-            const { data: publicUrlData } = _supabase.storage
-                .from('nefrodoctors-site')
-                .getPublicUrl(fileName);
+    const { data: publicUrlData } = _supabase.storage
+        .from('nefrodoctors-site')
+        .getPublicUrl(fileName);
 
             const fileUrl = publicUrlData.publicUrl;
             await _supabase.from('nefrodoctors-site').insert([{ card_id: cardId, tipo: 'arquivo', conteudo: fileUrl }]);
